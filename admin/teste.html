@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>jQM Complex Demo</title>
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1"/>
+	<link rel="stylesheet" href="_js/jquery/jquery-mobile-1.4.5.min.css" />
+	<link rel="stylesheet" href="_js/jquery/jquery-ui.min.css" />
+	<link rel="stylesheet" href="_js/sd.min.css" />
+	<script type="text/javascript" src="_js/jquery/jquery-1.11.3.min.js"></script>
+	<script type="text/javascript" src="_js/jquery/jquery-mobile-1.4.5.min.js"></script>
+	<script type="text/javascript" src="_js/jquery/jquery-ui.min.js"></script>
+	<script type="text/javascript" src="_js/sd.min.js"></script>
+	<script type="text/javascript" src="_js/funcoes.js"></script>
+	<script type="text/javascript" src="_js/mapa.js"></script>
+	<script>
+	</script>
+</head>
+<body>
+	<div data-role="page">
+		<div data-role="header" style="overflow: hidden;">
+			<nav data-role="navbar">
+			   <ul>
+		           	<li><a href="#" onclick="openMapa();" data-icon="home" >Home/Contas</a></li>
+		            <li><a href="#" onclick="loadPage('produtos');" data-icon="calendar" >Servicos/Produtos</a></li>
+		            <li><a href="#" onclick="loadPage('caixa');" data-icon="shop" >Vendas/Caixa</a></li>
+		            <li><a href="#" onclick="loadPage('mk');" data-icon="info" >Mk/logs</a></li>
+		            <li><a href="#" onclick="location.href='index.php?logout=true'" data-icon="power" >Logout</a></li>
+		       </ul>
+			</nav>
+			<!-- /navbar -->
+		</div>
+		<!-- /header -->
+		<div role="main" class="ui-content" id="content">
+			<div id="page">
+			</div>
+		</div>
+	</div>
+</body>
+</html>    

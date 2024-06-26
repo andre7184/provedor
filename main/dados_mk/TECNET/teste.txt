@@ -1,0 +1,6 @@
+# jul/27/2017 19:40:46 by RouterOS 6.40
+# software id = 98LT-3VZ5
+#
+Flags: R - radius 
+ #   NAME         SERVICE CALLER-ID         ADDRESS         UPTIME   ENCODING  
+ 0   adriano-casa pppoe   00:1D:0F:CB:32:27 10.0.0.253      2m44s              

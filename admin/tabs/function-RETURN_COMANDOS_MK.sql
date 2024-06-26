@@ -1,0 +1,26 @@
+BEGIN
+	declare COMANDOS_MK LONGTEXT;
+	CASE acao
+		WHEN 'add-secrets-pppoe' THEN 			
+			SET COMANDOS_MK=(SELECT CONCAT('/ppp secret add',IF(`caller-id_secretpp`!='',CONCAT(' caller-id="',`caller-id_secretpp`,'"'),''),IF(`comment_secretpp`!='',CONCAT(' comment="',`comment_secretpp`,'"'),''),IF(`local-address_secretpp`!='',CONCAT(' local-address="',`local-address_secretpp`,'"'),''),IF(`name_secretpp`!='',CONCAT(' name="',`name_secretpp`,'"'),''),IF(`password_secretpp`!='',CONCAT(' password="',`password_secretpp`,'"'),''),IF(`profile_secretpp`!='',CONCAT(' profile="',`profile_secretpp`,'"'),''),IF(`remote-address_secretpp`!='',CONCAT(' remote-address="',`remote-address_secretpp`,'"'),''),';') FROM `mk_secretpp` WHERE `id_secretpp`=id_table);
+		WHEN 'set-secrets-pppoe' THEN 			
+			SET COMANDOS_MK=(SELECT CONCAT('/ppp secret set [find name="',`name_secretpp`,'"]',IF(`caller-id_secretpp`!='',CONCAT(' caller-id="',`caller-id_secretpp`,'"'),''),IF(`comment_secretpp`!='',CONCAT(' comment="',`comment_secretpp`,'"'),''),IF(`local-address_secretpp`!='',CONCAT(' local-address="',`local-address_secretpp`,'"'),''),IF(`name_secretpp`!='',CONCAT(' name="',`name_secretpp`,'"'),''),IF(`password_secretpp`!='',CONCAT(' password="',`password_secretpp`,'"'),''),IF(`profile_secretpp`!='',CONCAT(' profile="',`profile_secretpp`,'"'),''),IF(`remote-address_secretpp`!='',CONCAT(' remote-address="',`remote-address_secretpp`,'"'),''),';') FROM `mk_secretpp` WHERE `id_secretpp`=id_table);
+		WHEN 'remove-secrets-pppoe' THEN 			
+			SET COMANDOS_MK=(SELECT CONCAT('/ppp secret remove [find name="',`name_secretpp`,'"];') FROM `mk_secretpp` WHERE `id_secretpp`=id_table);
+		WHEN 'add-profiles-pppoe' THEN 			
+			SET COMANDOS_MK=(SELECT CONCAT('/ppp profile add',IF(`name_profilepp`!='',CONCAT(' name="',`name_profilepp`,'"'),''),IF(`local-address_profilepp`!='',CONCAT(' local-address="',`local-address_profilepp`,'"'),''),IF(`remote-address_profilepp`!='',CONCAT(' remote-address="',`remote-address_profilepp`,'"'),''),IF(`address-list_profilepp`!='',CONCAT(' address-list="',`address-list_profilepp`,'"'),''),IF(`change-tcp-mss_profilepp`!='',CONCAT(' change-tcp-mss="',`change-tcp-mss_profilepp`,'"'),''),IF(`use-compression_profilepp`!='',CONCAT(' use-compression="',`use-compression_profilepp`,'"'),''),IF(`use-vj-compression_profilepp`!='',CONCAT(' use-vj-compression_profilepp="',`use-vj-compression_profilepp`,'"'),''),IF(`use-encryption_profilepp`!='',CONCAT(' use-encryption="',`use-encryption_profilepp`,'"'),''),IF(`session-timeout_profilepp`!='',CONCAT(' session-timeout="',`session-timeout_profilepp`,'"'),''),IF(`idle-timeout_profilepp`!='',CONCAT(' session-timeout="',`idle-timeout_profilepp`,'"'),''),IF(`rate-limit_profilepp`!='',CONCAT(' rate-limit="',`rate-limit_profilepp`,'"'),''),IF(`insert-queue-before_profilepp`!='',CONCAT(' insert-queue-before="',`insert-queue-before_profilepp`,'"'),''),IF(`parent-queue_profilepp`!='',CONCAT(' parent-queue="',`parent-queue_profilepp`,'"'),''),IF(`queue-type_profilepp`!='',CONCAT(' queue-type="',`queue-type_profilepp`,'"'),''),';') FROM `mk_profilepp` WHERE `id_profilepp`=id_table);
+		WHEN 'set-profiles-pppoe' THEN 			
+			SET COMANDOS_MK=(SELECT CONCAT('/ppp profile set [find name="',`name_profilepp`,'"]',IF(`name_profilepp`!='',CONCAT(' name="',`name_profilepp`,'"'),''),IF(`local-address_profilepp`!='',CONCAT(' local-address="',`local-address_profilepp`,'"'),''),IF(`remote-address_profilepp`!='',CONCAT(' remote-address="',`remote-address_profilepp`,'"'),''),IF(`address-list_profilepp`!='',CONCAT(' address-list="',`address-list_profilepp`,'"'),''),IF(`change-tcp-mss_profilepp`!='',CONCAT(' change-tcp-mss="',`change-tcp-mss_profilepp`,'"'),''),IF(`use-compression_profilepp`!='',CONCAT(' use-compression="',`use-compression_profilepp`,'"'),''),IF(`use-vj-compression_profilepp`!='',CONCAT(' use-vj-compression_profilepp="',`use-vj-compression_profilepp`,'"'),''),IF(`use-encryption_profilepp`!='',CONCAT(' use-encryption="',`use-encryption_profilepp`,'"'),''),IF(`session-timeout_profilepp`!='',CONCAT(' session-timeout="',`session-timeout_profilepp`,'"'),''),IF(`idle-timeout_profilepp`!='',CONCAT(' session-timeout="',`idle-timeout_profilepp`,'"'),''),IF(`rate-limit_profilepp`!='',CONCAT(' rate-limit="',`rate-limit_profilepp`,'"'),''),IF(`insert-queue-before_profilepp`!='',CONCAT(' insert-queue-before="',`insert-queue-before_profilepp`,'"'),''),IF(`parent-queue_profilepp`!='',CONCAT(' parent-queue="',`parent-queue_profilepp`,'"'),''),IF(`queue-type_profilepp`!='',CONCAT(' queue-type="',`queue-type_profilepp`,'"'),''),';') FROM `mk_profilepp` WHERE `id_profilepp`=id_table);
+		WHEN 'remove-profiles-pppoe' THEN 			
+			SET COMANDOS_MK=(SELECT CONCAT('/ppp profile remove [find name="',`name_profilepp`,'"];') FROM `mk_profilepp` WHERE `id_profilepp`=id_table);
+		WHEN 'reboot-mk' THEN 			
+			SET COMANDOS_MK='/system reboot;';
+		WHEN 'remove-active-pppoe' THEN 			
+			SET COMANDOS_MK=(SELECT CONCAT('/ppp active remove [find name="',`name_secretpp`,'"];') FROM `mk_secretpp` WHERE `id_secretpp`=id_table);
+		ELSE
+			BEGIN 
+				SET COMANDOS_MK='';
+			END;
+	END CASE;
+			RETURN COMANDOS_MK;
+END

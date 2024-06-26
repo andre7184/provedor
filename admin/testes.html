@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>jQM Complex Demo</title>
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1"/>
+	<link rel="stylesheet" href="_js/jquery/jquery-mobile-1.4.5.min.css" />
+	<link rel="stylesheet" href="_js/jquery/jquery-ui.min.css" />
+	<script type="text/javascript" src="_js/jquery/jquery-1.11.3.min.js"></script>
+	<script type="text/javascript" src="_js/jquery/jquery-mobile-1.4.5.min.js"></script>
+	<script type="text/javascript" src="_js/jquery/jquery-ui.min.js"></script>
+	<script type="text/javascript" src="_js/funcoes.js"></script>
+	<script type="text/javascript">
+	//FUNCAO BUSCA ENDEREÇO
+	function getEnd(cep,valEnd) {
+		if($.trim(cep) != ""){
+			getLoading('Buscando Endereço, aguarde...');
+			$.getScript("remote.php?cmd=busca&tipo=end&formato=javascript&cep="+cep, function(){
+		  		if(resultadoCEP["resultado"]){
+		  			$("#"+valEnd.logradouro).val(unescape(resultadoCEP["tipo_logradouro"]).toUpperCase()+' '+unescape(resultadoCEP["logradouro"]).toUpperCase());
+		  			$("#"+valEnd.bairro).val(unescape(resultadoCEP["bairro"]).toUpperCase());
+		  			$("#"+valEnd.cidade).val(unescape(resultadoCEP["cidade"]).toUpperCase()); 
+		  			$("#"+valEnd.uf).val(unescape(resultadoCEP["uf"]).toUpperCase());
+		  			$.mobile.loading("hide");
+		  			//showPopup({title: "Sucesso!", message: "Cep "+cep+" correto, End:"+resultadoCEP['tipo_logradouro']+" "+resultadoCEP['logradouro']+"!", buttonText: "I know!", width: "500px"});
+				}else{
+					//showPopup({title: "Error", message: 'Cep não encontrado!', buttonText: "I know!", width: "500px"});
+					//$("#popupDialog").popup("open");
+					$.mobile.loading("hide");
+					alert('Nenhum endereço encontrado!');
+				}
+			});			
+		}else{
+			$("#"+valEnd.cep).focus();
+			alert('Preencha corretamento o cep!');
+		}	
+	}	
+	//FUNCAO BUSCA CEP
+	function getCep(valEnd) {
+		var log=$("#"+valEnd.logradouro).val();
+		var end=log;
+		if(end!=''){
+			if($("#"+valEnd.numero).val()!='')
+				end+='+'+$("#"+valEnd.numero).val();
+			//
+			if($("#"+valEnd.bairro).val()!='')
+				end+='+'+$("#"+valEnd.bairro).val();
+			//
+			if($("#"+valEnd.cidade).val()!='')
+				end+='+'+$("#"+valEnd.cidade).val();
+			//
+			if($("#"+valEnd.uf).val()!='')
+				end+='+'+$("#"+valEnd.uf).val();
+		}
+		if(end != ""){
+			getLoading('Buscando Cep, aguarde...');
+			$.ajax({
+  	    		url: "remote.php?cmd=busca&tipo=cep&end="+end,
+  	            dataType: "json",
+  	            crossDomain: !0
+  	      	}).then( function ( r ) {
+				$.mobile.loading("hide");
+				if(r.results.length!=0){
+					var cepL={};
+					var cepS={};
+					var output = [];
+					$.each( r.results, function( key1, val1 ) {
+						//alert(val1.formatted_address)
+						$.each( val1.address_components, function( key, val ) {
+							//alert(val+' - '+val.types[0])
+							cepL[val.types[0]]=val.long_name;
+							cepS[val.types[0]]=val.short_name;
+						});
+						if(cepL.postal_code && cepL.postal_code!='')
+							output.push('<li><a onclick="$(\'#'+valEnd.cep+'\').val(\''+cepL.postal_code+'\');$(\'#bt_PageListView\').click();">'+cepL.postal_code+' - '+val1.formatted_address+'</a></li>');
+						//
+					});
+					if(output.length>0){
+						$('#cadastro_clientes').one('popupafterclose', function(){$('#PageListView').popup('open')}).popup('close');
+						$("#titulo_PageListView").html("Cep(s) Localizados");
+						$("#list_PageListView").empty().append(output.join('')).listview('refresh');
+						$("#list_PageListView").listview('refresh');
+					}else{
+						alert('Nenhum cep encontrado!');
+					}
+				}else{
+					alert('Nenhum cep encontrado!');
+				}
+			});
+		}else{
+			$("#"+valEnd.logradouro).focus();
+			alert('Preencha corretamento o endereço!');
+		}	
+	}
+	function onloadPontos() {
+		$("#end_add").find('option').prop('disabled', false);
+		if($("#end1_clientesfc").val()=='')
+			$("#end_add").find('option[value=1]').prop('disabled', true);
+		else
+			$("#end_add").find('option[value=1]').html($("#end1_clientesfc").val()+', '+$("#num1_clientesfc").val()+', '+$("#bar1_clientesfc").val()+', '+$("#cid1_clientesfc").val()+'-'+$("#uf1_clientesfc").val());
+		//
+		if($("#end2_clientesfc").val()=='')
+			$("#end_add").find('option[value=2]').prop('disabled', true);
+		else
+			$("#end_add").find('option[value=2]').html($("#end2_clientesfc").val()+', '+$("#num2_clientesfc").val()+', '+$("#bar2_clientesfc").val()+', '+$("#cid2_clientesfc").val()+'-'+$("#uf2_clientesfc").val());
+		//
+		$("#end_add").selectmenu('refresh');
+		//downloads selects
+		$("#cadastro_clientes_pontos").find('select[data-role="auto"][data-url]').each(function() {
+			var inp=$(this);
+			var dataUrl=inp.attr("data-url");
+			$.ajax({url: dataUrl,
+	            success: function(output) {
+	               inp.html(output);
+	           },
+	         error: function (xhr, ajaxOptions, thrownError) {
+	           alert(xhr.status + " "+ thrownError);
+	         }});
+		});
+	}
+	var id_ponto=0;
+	function addIntemPontos(id_del){
+		if(id_del && id_del!=''){
+			id_del.remove();
+		}else{
+			var id_pontos='';
+			if($("#id_pontosfc").val()!=''){
+				var id=$("#id_pontos_add").val();
+				id_pontos=id;
+			}else
+				var id=id_ponto+1;
+			//
+			var end=$("#end_add").val();
+			var outro_end=$("#outro_end_add").val();
+			var lat=$("#lat_add").val();
+			var lon=$("#lon_add").val();
+			var torreArr=$("#torre_add").val().split("|");
+			var mk=$("#mk_add").val();
+			var equip=$("#equip_add").val();
+			var tipo_equip=$("#tipo_equip_add").val();
+			var tipo_auth=$("#tipo_auth_add").val();
+			var name_secret=$("#name_secret_add").val();
+			var id_secret=$("#id_secret_add").val()
+			var planoArr=$("#plano_add").val().split("|");
+			var id_profile=0;
+			if(tipo_auth=='pppoe'){
+				id_profile=planoArr[2];
+			}else if(tipo_auth=='hotspot'){
+				id_profile=planoArr[3];
+			}else if(tipo_auth=='binding'){
+				id_profile=planoArr[4];
+			}
+			//
+			var gratis=$("#gratis_add").val();
+			var desconto=$("#desconto_add").val();
+			var acrescimo=$("#acrescimo_add").val();
+			$('#itens_pontos li').each(function(){
+				if($(this).attr("id")){
+					var idArr=$(this).attr("id").split("_");
+					if(idArr[1]==id){
+						$(this).remove();
+					}
+				}
+			});
+			//var total=decimalFormat(qtd*valor);
+			var html=$("#itens_pontos").html();
+			html +='<li id="item_'+id+'">';
+	      	html +='<a href="#" onclick="$(\'#cadastro_clientes\').one(\'popupafterclose\', function(){$(\'#cadastro_clientes_pontos\').popup(\'open\')}).popup(\'close\');">';
+	      	html +='<input name="endereco_pontosfc[]" value="'+end+'" type="hidden">';
+	      	html +='<input name="outro_endereco_pontosfc[]" value="'+outro_end+'" type="hidden">';
+	      	html +='<input name="latitude_pontosfc[]" value="'+lat+'" type="hidden">';
+	      	html +='<input name="longitude_pontosfc[]" value="'+lon+'" type="hidden">';
+	      	html +='<input name="id_torre_pontosfc[]" value="'+torreArr[0]+'" type="hidden">';
+	      	html +='<input name="lat_torre_pontosfc[]" value="'+torreArr[1]+'" type="hidden">';
+	      	html +='<input name="lng_torre_pontosfc[]" value="'+torreArr[2]+'" type="hidden">';
+	      	html +='<input name="id_mk_pontosfc[]" value="'+mk+'" type="hidden">';
+	      	html +='<input name="equipamentos_pontosfc[]" value="'+equip+'" type="hidden">';
+	      	html +='<input name="tipo_equipamento_pontosfc[]" value="'+tipo_equip+'" type="hidden">';
+	      	html +='<input name="tipo_auth_pontosfc[]" value="'+tipo_auth+'" type="hidden">';
+	      	html +='<input name="name_secret[]" value="'+name_secret+'" type="hidden">';
+	      	html +='<input name="id_secret[]" value="'+id_secret+'" type="hidden">';
+	      	html +='<input name="id_mensalfc[]" value="'+planoArr[0]+'" type="hidden">';
+	      	html +='<input name="id_profile[]" value="'+id_profile+'" type="hidden">';
+	      	html +='<input name="valor_sevmensalfc[]" value="'+planoArr[1]+'" type="hidden">';
+	      	html +='<input name="gratis_sevmensalfc[]" value="'+gratis+'" type="hidden">';
+	      	html +='<input name="valor_desconto_mensalfc[]" value="'+desconto+'" type="hidden">';
+	      	html +='<input name="valor_acrescimo_mensalfc[]" value="'+acrescimo+'" type="hidden">';
+	      	html +='<input name="id_pontosfc[]" value="'+id_pontos+'" type="hidden">';
+	      	html +='<fieldset class="ui-grid-a">';
+	      	html +='<div class="ui-block-a" style="width:20%">PONTO '+id+'</div>';
+	      	html +='<div class="ui-block-b" style="width:80%;font-size: 10px;">'+equip+'('+tipo_equip+')<BR>'+name_secret+'('+tipo_auth+')<BR>'+planoArr[5]+' R$ '+planoArr[1]+'</div>';
+	      	html +='</fieldset>';
+	      	html +='</a>';
+	      	html +='<a href="#" onclick="addIntemPontos($(this).parent());">Remove</a>';
+	      	html +='</li>';
+	      	$("#itens_pontos").html(html);
+		}
+    	$("#itens_pontos").listview("refresh");
+    	$("#itens_pontos").trigger("updatelayout");
+    	$("#qtd_itens_pontos").html($('#itens_pontos li').size()-1); 
+    	var valor_mensalidade='';
+	    $('#itens_pontos li').each(function(){
+			if($(this).attr("id")){
+				if($(this).find("input[name='gratis_sevmensalfc[]']").val()!='on'){
+					valor_mensalidade+=$(this).find("input[name='valor_sevmensalfc[]']").val()*1+$(this).find("input[name='valor_acrescimo_mensalfc[]']").val()*1-$(this).find("input[name='valor_desconto_mensalfc[]']").val()*1;
+				}
+			}
+		});
+	    $("#valor_mensalidade").val(decimalFormat(valor_mensalidade));
+	    sumVendas();
+	}
+	function getCep(valEnd) {
+		var uf=$("#"+valEnd.uf).val();
+		var cid=$("#"+valEnd.cidade).val();
+		var log=$("#"+valEnd.logradouro).val();
+		var end='';
+		if(uf!='' && cid!='' && log!=''){
+			end=uf+'/'+cid+'/'+log;
+		}
+		if(end != ''){
+			getLoading('Buscando Cep, aguarde...');
+			$.ajax({
+  	    		url: "https://viacep.com.br/ws/"+end+"/json/",
+  	            dataType: "json",
+  	            crossDomain: !0
+  	      	}).then( function (results) {
+				$.mobile.loading("hide");
+				alert(results);
+				if(results.length!=0){
+					var output = [];
+					$.each(results, function( key1, val1 ) {
+						//alert(val1.formatted_address)
+						if(val1.cep!='')
+							output.push('<li><a onclick="$(\'#'+valEnd.cep+'\').val(\''+val1.cep+'\');$(\'#'+valEnd.logradouro+'\').val(\''+val1.logradouro+'\');$(\'#'+valEnd.bairro+'\').val(\''+val1.bairro+'\');$(\'#PageListView\').one(\'popupafterclose\', function(){$(\'#cadastro_clientes\').popup(\'open\')}).popup("close")">'+val1.cep+' - '+val1.logradouro+', '+val1.bairro+'</a></li>');
+						//
+					});
+					if(output.length>0){
+						$('#cadastro_clientes').one('popupafterclose', function(){$('#PageListView').popup('open')}).popup('close');
+						$("#titulo_PageListView").html("Cep(s) Localizados ("+output.length+")");
+						$("#list_PageListView").empty().append(output.join('')).listview('refresh');
+						$("#list_PageListView").listview('refresh');
+					}else{
+						alert("Nenhum cep encontrado!");
+					}
+				}else{
+					alert('Nenhum cep encontrado!');
+				}
+			});
+		}else{
+			$("#"+valEnd.logradouro).focus();
+			alert('Preencha corretamento o endereço!');
+		}	
+	}
+	</script>
+	<style type="text/css">
+		.disabled {
+		  	pointer-events: none;
+			/* for "disabled" effect */
+		  	opacity: 0.5;
+		  	background: #CCC;
+		}
+		.controlgroup-textinput {
+		    padding-top:.22em;
+		    padding-bottom:.22em;
+		}
+
+	</style>
+</head>
+<body>
+    <div data-role="page" id="index">
+    	<div data-role="header" style="overflow:hidden;" data-position="fixed">
+			<div class="ui-grid-b">
+			    <div class="ui-block-a"><input id="lat-torre" type="hidden"><input placeholder="Digite Latitude" id="lat" type="text" data-wrapper-class="controlgroup-textinput ui-btn" style="width:75px"></div>
+			    <div class="ui-block-b"><input id="lng-torre" type="hidden"><input placeholder="Digite Latitude" id="lng" type="text" data-wrapper-class="controlgroup-textinput ui-btn" style="width:75px"></div>
+			    <div class="ui-block-c"><a href="#" onclick="getMap();" class="ui-shadow ui-btn ui-corner-all ui-btn-icon-left ui-icon-search ui-btn-min">RELOAD</a></div> 
+			</div><!-- /grid-b -->
+		</div><!-- /header -->
+        <div data-role="content" id="content">
+						<input id="myscripts" value="setArgData,listar,onloadPontos" type="hidden">
+						<input id="myruns" value="listar('clientes','clientes','lista_clientes');" type="hidden">
+						<center>
+							<div data-role="navbar">
+							    <ul>
+							        <li><a href="#" onclick="loadPage('home');">Dados Gerais</a></li>
+							        <li><a href="#" onclick="loadPage('clientes');" class="ui-btn-active">Contas</a></li>
+							    </ul>
+							</div><!-- /navbar -->									
+						</center>
+						<a href="#cadastro_clientes" onclick="$('#id_clientesfc').val('');$('#title_cadastro_clientes').html('Cadastrar');loadScript('','cadastro_clientes');" data-rel="popup" data-position-to="window" data-transition="pop" class="ui-shadow ui-btn ui-corner-all ui-btn-icon-left ui-icon-plus">Novo Cliente</a>
+						<ul id="lista_clientes" data-role="listview" data-split-icon="delete" data-theme="a" data-inset="true" style="white-space:normal;">
+						</ul>
+						<div data-role="popup" id="cadastro_clientes">
+							<a href="#" data-rel="back" class="ui-btn ui-corner-all ui-shadow ui-btn-a ui-icon-delete ui-btn-icon-notext ui-btn-right">Close</a>
+							<div style="padding:5px 10px;margin:5px">
+								<center>
+								    <font id=title_cadastro_clientes>Cadastrar</font> Cliente</h2>
+									<div data-role="collapsible" data-collapsed="false">
+										<legend>Dados Pessoais</legend>
+										<ul data-role="listview" data-inset="true">
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Pessoa Jurídica:</font>
+												<select name="pessoa_juridica_clientesfc" id="pessoa_juridica_clientesfc" data-role="slider" data-mini="true">
+												    <option value="">Off</option>
+												    <option value="on">On</option>
+												</select>
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Nome:</font>
+												<input name="nome_clientesfc" id="nome_clientesfc" type="text">
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Razão Social(jurídica):</font>
+												<input name="razao_social_clientesfc" id="razao_social_clientesfc" type="text">
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">RG/Incrição Estatual:</font>
+												<input name="rg_ie_clientesfc" id="rg_ie_clientesfc" type="text">
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Cpf/Cnpj:</font>
+												<input name="cpf_cnpj_clientesfc" id="cpf_cnpj_clientesfc" type="text">
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Responsavel(jurídica):</font>
+												<input name="responsavel_clientesfc" id="responsavel_clientesfc" type="text">
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Data de Nascimento:</font>
+												<input name="data_nascimento_clientesfc" id="data_nascimento_clientesfc" class="datebox" type="text">
+											</li>
+										</ul>
+									</div>
+									<div data-role="collapsible" data-collapsed="true">
+										<legend>Dados de Contato</legend>
+										<ul data-role="listview" data-inset="true">
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Telefone 1:</font>
+											    <div class="ui-grid-b center">
+											    	<div class="ui-block-a">
+												    	<input name="tel1_clientesfc" id="tel1_clientesfc" class="phone_with_ddd" type="text" placeholder="Telefone" data-mini="true">
+											        </div>
+											        <div class="ui-block-b">
+												        <select name="op1_clientesfc" id="op1_clientesfc" data-mini="true">
+												        	<option value="" select>Oper</option>
+												            <option value="OI">Oi</option>
+												            <option value="VIVO">Vivo</option>
+												            <option value="CLARO">Claro</option>
+												            <option value="TIM">Tim</option>
+												            <option value="NET">Net</option>
+												            <option value="NEXTEL">Nextel</option>
+												        </select>
+												    </div>
+											        <div class="ui-block-c">
+											        	<font>whatszap:</font>
+														<select name="wsap1_clientesfc" id="wsap1_clientesfc" data-role="slider" data-mini="true">
+														    <option value="">Off</option>
+														    <option value="on">On</option>
+														</select>
+					        						</div>
+											    </div>
+										    	<input name="nome1_clientesfc" id="nome1_clientesfc" type="text" placeholder="Nome Contato" data-mini="true">
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Telefone 2:</font>
+											    <div class="ui-grid-b center">
+											    	<div class="ui-block-a">
+												    	<input name="tel2_clientesfc" id="tel2_clientesfc" class="phone_with_ddd" type="text" placeholder="Telefone" data-mini="true">
+											        </div>
+											        <div class="ui-block-b">
+												        <select name="op2_clientesfc" id="op2_clientesfc" data-mini="true">
+												        	<option value="" select>Oper</option>
+												            <option value="OI">Oi</option>
+												            <option value="VIVO">Vivo</option>
+												            <option value="CLARO">Claro</option>
+												            <option value="TIM">Tim</option>
+												            <option value="NET">Net</option>
+												            <option value="NEXTEL">Nextel</option>
+												        </select>
+												    </div>
+											        <div class="ui-block-c">
+											     		<font>whatszap:</font>
+														<select name="wsap2_clientesfc" id="wsap2_clientesfc" data-role="slider" data-mini="true">
+														    <option value="">Off</option>
+														    <option value="on">On</option>
+														</select>
+					        						</div>
+											    </div>
+											    <input name="nome2_clientesfc" id="nome2_clientesfc" type="text" placeholder="Nome Contato" data-mini="true">
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Telefone 3:</font>
+											    <div class="ui-grid-b center">
+											    	<div class="ui-block-a">
+												    	<input name="tel3_clientesfc" id="tel3_clientesfc" class="phone_with_ddd" type="text" placeholder="Telefone" data-mini="true">
+											        </div>
+											        <div class="ui-block-b">
+												        <select name="op3_clientesfc" id="op3_clientesfc" data-mini="true">
+												        	<option value="" select>Oper</option>
+												            <option value="OI">Oi</option>
+												            <option value="VIVO">Vivo</option>
+												            <option value="CLARO">Claro</option>
+												            <option value="TIM">Tim</option>
+												            <option value="NET">Net</option>
+												            <option value="NEXTEL">Nextel</option>
+												        </select>
+												    </div>
+											        <div class="ui-block-c">
+											        	<font>whatszap:</font>
+														<select name="wsap3_clientesfc" id="wsap3_clientesfc" data-role="slider" data-mini="true">
+														    <option value="">Off</option>
+														    <option value="on">On</option>
+														</select>
+					        						</div>
+											    </div>
+											    <input name="nome3_clientesfc" id="nome3_clientesfc" type="text" placeholder="Nome Contato" data-mini="true">										    
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Email:</font>
+										    	<input name="email_clientesfc" id="email_clientesfc" type="text">
+											</li>
+										</ul>
+									</div>
+									<div data-role="collapsible" data-collapsed="true" class="openMe">
+										<legend>Endereço 1</legend>
+										<ul data-role="listview" data-inset="true">
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Endereço 1 (endereço de Cobrança?):</font>
+												<select name="cob1_clientesfc" id="cob1_clientesfc" data-role="slider" data-mini="true">
+												    <option value="">Off</option>
+												    <option value="on">On</option>
+												</select>
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Endereço 1 Cep:</font>
+										   		<input name="cep1_clientesfc" size="10" id="cep1_clientesfc" class="cep" type="text" placeholder="Cep" class="ui-mini">
+											</li>	
+											<li class="ui-field-contain">
+										    	<a href="#" onclick="getEnd($('#cep1_clientesfc').val(),{cep:'cep1_clientesfc',logradouro:'end1_clientesfc',numero:'num1_clientesfc',bairro:'bar1_clientesfc',cidade:'cid1_clientesfc',uf:'uf1_clientesfc'});" class="ui-shadow ui-btn ui-corner-all ui-btn-icon-left ui-icon-search">Localizar Endereço 1</a>
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Endereço 1 Logradouro:</font>
+											    <input name="end1_clientesfc" id="end1_clientesfc" type="text">
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Endereço 1 Número:</font>
+											    <input name="num1_clientesfc" id="num1_clientesfc" type="text">
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Endereço 1 Complemento:</font>
+											    <input name="comp1_clientesfc" id="comp1_clientesfc" type="text">
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Endereço 1 Bairro:</font>
+											    <input name="bar1_clientesfc" id="bar1_clientesfc" type="text">
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Endereço 1 Estado:</font>
+											   	<select name="uf1_clientesfc" id="uf1_clientesfc" data-native-menu="true" class="ui-mini" data-mini="true">
+												    <option value="0">Selecione o Estado</option>
+													<option value="AC">Acre</option>
+													<option value="AL">Alagoas</option>
+													<option value="AP">Amapá</option>
+													<option value="AM">Amazonas</option>
+													<option value="BA">Bahia</option>
+													<option value="CE">Ceará</option>
+													<option value="DF">Distrito Federal</option>
+													<option value="ES">Espirito Santo</option>
+													<option value="GO">Goiás</option>
+													<option value="MA">Maranhão</option>
+													<option value="MS" selected>Mato Grosso do Sul</option>
+													<option value="MT">Mato Grosso</option>
+													<option value="MG">Minas Gerais</option>
+													<option value="PA">Pará</option>
+													<option value="PB">Paraíba</option>
+													<option value="PR">Paraná</option>
+													<option value="PE">Pernambuco</option>
+													<option value="PI">Piauí</option>
+													<option value="RJ">Rio de Janeiro</option>
+													<option value="RN">Rio Grande do Norte</option>
+													<option value="RS">Rio Grande do Sul</option>
+													<option value="RO">Rondônia</option>
+													<option value="RR">Roraima</option>
+													<option value="SC">Santa Catarina</option>
+													<option value="SP">São Paulo</option>
+													<option value="SE">Sergipe</option>
+													<option value="TO">Tocantins</option>
+												</select>
+											</li>
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Endereço 1 Cidade:</font>
+											    <input name="cid1_clientesfc" id="cid1_clientesfc" type="text">
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Busca Cep (Pelo endereço):</font>
+												<a href="#" onclick="getCep({cep:'cep1_clientesfc',logradouro:'end1_clientesfc',numero:'num1_clientesfc',bairro:'bar1_clientesfc',cidade:'cid1_clientesfc',uf:'uf1_clientesfc'});" class="ui-shadow ui-btn ui-corner-all ui-btn-icon-left ui-icon-search">Localizar CEP 1</a>
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Endereço 1 Localizar Latitude e Longitude:</font>
+											    <a href="#map-page" onclick="openMapa('1')" class="ui-shadow ui-btn ui-corner-all ui-btn-icon-left ui-icon-search">Localizar Latitude/Longitude</a>
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Endereço 1 Latitude:</font>
+											    <input name="lat1_clientesfc" id="lat1_clientesfc" type="text">
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Endereço 1 Longitude:</font>
+											    <input name="long1_clientesfc" id="long1_clientesfc" type="text">
+											</li>
+										</ul>
+									</div>
+									<div data-role="collapsible" data-collapsed="true">
+										<legend>Endereço 2</legend>
+										<ul data-role="listview" data-inset="true">
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Endereço 2 (endereço de Cobrança?):</font>
+												<select name="cob2_clientesfc" id="cob2_clientesfc" data-role="slider" data-mini="true">
+												    <option value="">Off</option>
+												    <option value="on">On</option>
+												</select>
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Endereço 2 Logradouro:</font>
+											    <input name="end2_clientesfc" id="end2_clientesfc" type="text">
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Endereço 2 Número:</font>
+											    <input name="num2_clientesfc" id="num2_clientesfc" type="text">
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Endereço 2 Complemento:</font>
+											    <input name="comp2_clientesfc" id="comp2_clientesfc" type="text">
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Endereço 2 Cep:</font>
+												<input name="cep2_clientesfc" id="cep2_clientesfc" class="cep" type="text" placeholder="Cep" data-wrapper-class="controlgroup-textinput ui-btn">
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Buscar Endereço 2 (pelo cep):</font>
+										    	<a href="#" onclick="getEnd($('#cep2_clientesfc').val(),{cep:'cep2_clientesfc',logradouro:'end2_clientesfc',numero:'num2_clientesfc',bairro:'bar2_clientesfc',cidade:'cid2_clientesfc',uf:'uf2_clientesfc'});" class="ui-shadow ui-btn ui-corner-all ui-btn-icon-left ui-icon-search">Localizar Endereço 2</a>
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Endereço 2 Bairro:</font>
+											    <input name="bar2_clientesfc" id="bar2_clientesfc" type="text">
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Endereço 2 Cidade:</font>
+											    <input name="cid2_clientesfc" id="cid2_clientesfc" type="text">
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Endereço 2 Estado:</font>
+											   	<select name="uf2_clientesfc" id="uf2_clientesfc" data-native-menu="true" class="ui-mini" data-mini="true">
+												    <option value="0">Selecione o Estado</option>
+													<option value="AC">Acre</option>
+													<option value="AL">Alagoas</option>
+													<option value="AP">Amapá</option>
+													<option value="AM">Amazonas</option>
+													<option value="BA">Bahia</option>
+													<option value="CE">Ceará</option>
+													<option value="DF">Distrito Federal</option>
+													<option value="ES">Espirito Santo</option>
+													<option value="GO">Goiás</option>
+													<option value="MA">Maranhão</option>
+													<option value="MS" selected>Mato Grosso do Sul</option>
+													<option value="MT">Mato Grosso</option>
+													<option value="MG">Minas Gerais</option>
+													<option value="PA">Pará</option>
+													<option value="PB">Paraíba</option>
+													<option value="PR">Paraná</option>
+													<option value="PE">Pernambuco</option>
+													<option value="PI">Piauí</option>
+													<option value="RJ">Rio de Janeiro</option>
+													<option value="RN">Rio Grande do Norte</option>
+													<option value="RS">Rio Grande do Sul</option>
+													<option value="RO">Rondônia</option>
+													<option value="RR">Roraima</option>
+													<option value="SC">Santa Catarina</option>
+													<option value="SP">São Paulo</option>
+													<option value="SE">Sergipe</option>
+													<option value="TO">Tocantins</option>
+												</select>
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Busca Cep 2 (Pelo endereço 2):</font>
+												<a href="#" onclick="getCep({cep:'cep2_clientesfc',logradouro:'end2_clientesfc',numero:'num2_clientesfc',bairro:'bar2_clientesfc',cidade:'cid2_clientesfc',uf:'uf2_clientesfc'});" class="ui-shadow ui-btn ui-corner-all ui-btn-icon-left ui-icon-search">Localizar CEP 2</a>
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Endereço 2 Localizar Latitude e Longitude:</font>
+											    <a href="#map-page" onclick="openMapa('2')" class="ui-shadow ui-btn ui-corner-all ui-btn-icon-left ui-icon-search">Localizar Latitude/Longitude</a>
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Endereço 2 Latitude:</font>
+											    <input name="lat2_clientesfc" id="lat2_clientesfc" type="text">
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Endereço 2 Longitude:</font>
+											    <input name="long2_clientesfc" id="long2_clientesfc" type="text">
+											</li>
+										</ul>
+									</div>
+									<div data-role="collapsible" data-collapsed="true">
+										<legend>Configurações de Cobrança</legend>
+										<ul>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Dia do Vencimento:</font>
+											    <select name="venc_clientesfc" id="venc_clientesfc" data-native-menu="false">
+											        <option value="10">10</option>
+											        <option value="15">15</option>
+											        <option value="20">20</option>
+											        <option value="25">25</option> 
+												</select>
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Acesso Grátis:</font>
+											    <select name="acesso_gratis_clientesfc" id="acesso_gratis_clientesfc" data-role="slider" data-mini="true">
+												    <option value="">Off</option>
+												    <option value="on">On</option>
+												</select>
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Desativar Juros e Multa:</font>
+											    <select name="desativar_juros_clientesfc" id="desativar_juros_clientesfc" data-role="slider" data-mini="true">
+												    <option value="">Off</option>
+												    <option value="on">On</option>
+												</select>
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Desativar Bloqueio Automático:</font>
+											    <select name="destivar_bloqueio_clientesfc" id="destivar_bloqueio_clientesfc" data-role="slider" data-mini="true">
+												    <option value="">Off</option>
+												    <option value="on">On</option>
+												</select>
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Valor Mínimo para Bloqueio:</font>
+												<input name="valor_bloqueio_clientesfc" id="valor_bloqueio_clientesfc" class="money" value="0" type="text">
+											</li>
+										</ul>
+									</div>
+									<div data-role="collapsible" data-collapsed="true">
+										<legend>Pontos de Acessos</legend>
+										<ul id="itens_pontos" data-role="listview" data-split-icon="delete" data-theme="a" data-inset="true" style="white-space:normal;">
+											<li data-role="list-divider">Itens <span class="ui-li-count" id="qtd_itens_pontos">0</span></li>
+										</ul>
+										<button onclick="onloadPontos();$('#itc_endereco').addClass('ui-screen-hidden');$('#cadastro_clientes').one('popupafterclose', function(){$('#cadastro_clientes_pontos').popup('open')}).popup('close');" type="submit" class="ui-btn ui-btn-inline ui-shadow ui-btn-icon-left ui-icon-plus">Add Ponto</button>
+									</div>
+									<div data-role="collapsible" data-collapsed="true">
+										<legend>OUTROS</legend>
+										<ul>
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Valor Mensalidade:</font>
+												R$ <font id="valor_mensalidade" class="money">0,00</font>
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Valor serviço Instalação:</font>
+												<input class="valor_instalacao" name="valor_instalacao" value="0,00" class="money" type="text">
+											</li>	
+											<li class="ui-field-contain">
+												<font style="font-size: 10px;">Obs:</font>
+												<textarea cols="40" rows="8" name="obs_clientesfc" id="obs_clientesfc" data-mini="true"></textarea>
+											</li>
+										</ul>
+									</div>
+									<input name="qtd_pontos_clientesfc" type="hidden">
+									<input data-fix=true name="cmd" value="save" type="hidden">
+									<input data-fix=true name="cache" value="false" type="hidden">
+									<input data-fix=true name="tipo" value="cliente" type="hidden">
+									<input name="id_clientesfc" id="id_clientesfc" type="hidden">
+									<button onclick="salvaDados(this,'cadastro_clientes');$('#cadastro_clientes').one('popupafterclose').popup('close');" type="submit" class="ui-btn ui-btn-inline ui-shadow ui-btn-b ui-btn-icon-left ui-icon-check">SALVAR</button>
+									<a href="#" data-direction="reverse" data-rel="back" class="ui-btn ui-btn-inline ui-shadow ui-btn-b ui-btn-icon-left ui-icon-delete">FECHAR</a>	
+								</center>
+							</div><!-- /popup -->
+						</div>  
+						<div data-role="popup" id="cadastro_clientes_pontos">
+							<a href="#" data-rel="back" class="ui-btn ui-corner-all ui-shadow ui-btn-a ui-icon-delete ui-btn-icon-notext ui-btn-right">Close</a>
+					        <div style="padding:10px 20px;">
+								<center><h3>PONTO DE ACESSO <font id="n_ponto">01</font></h3></center>
+								<ul data-role="listview" data-inset="true" id="cd_pontos">
+									<li class="ui-field-contain">
+										<font style="font-size: 10px;">Selecione Endereço:</font>
+									    <select id="end_add" onchange="if($(this).val()=='0'){$('#itc_endereco').removeClass('ui-screen-hidden');}else{$('#itc_endereco').addClass('ui-screen-hidden');};$('#cd_pontos').listview('refresh');" data-mini="true">
+									    	<option value="">Selecione o endereço</option>
+									    	<option value="1">Endereço 1</option>
+									    	<option value="2">Endereço 2</option>
+									    	<option value="0">Outro Endereço</option>
+									    </select>
+									</li>	
+									<li class="ui-field-contain" id="itc_endereco">
+										<font style="font-size: 10px;">Digite o Endereço (rua,num,bairro,cidade-uf):</font>
+									    <input id="outro_end_add" type="text" data-mini="true">
+									</li>	
+									<li class="ui-field-contain">
+										<font style="font-size: 10px;">Latitude e longitude:</font>
+									    <fieldset data-role="controlgroup" data-type="horizontal" data-mini="false">
+										    <input id="lat_add" placeholder="Latitude" type="text" data-wrapper-class="controlgroup-textinput ui-btn">
+										    <input id="lon_add" placeholder="Longitude" type="text" data-wrapper-class="controlgroup-textinput ui-btn">
+										    <a href="#" onclick="openMapa('ponto',$(this))" class="ui-shadow ui-btn ui-corner-all ui-btn-icon-left ui-icon-search ui-btn-icon-notext">Localizar Latitude/Longitude</a>
+									    </fieldset>
+									</li>
+									<li class="ui-field-contain">
+										<font style="font-size: 10px;">Torre de Acesso:</font>
+									    <select id="torre_add" data-role="auto" data-url="remote.php?cmd=busca&tipo=select_torre" data-mini="true">
+									    </select>
+									</li>
+									<li class="ui-field-contain">
+										<font style="font-size: 10px;">Mk de Acesso:</font>
+									    <select id="mk_add" data-role="auto" data-url="remote.php?cmd=busca&tipo=select_mk" data-mini="true">
+									    </select>
+									</li>	
+									<li class="ui-field-contain">
+										<font style="font-size: 10px;">Equipamentos instalados:</font>
+									    <textarea id="equip_add" cols="40" rows="8" data-mini="true"></textarea>
+									</li>	
+									<li class="ui-field-contain">
+										<font style="font-size: 10px;">Tipo de iquipamento:</font>
+									    <select id="tipo_equip_add" data-native-menu="false">
+									        <option value="alugado">Alugado/emprestado</option>
+									        <option value="cliente">Do cliente</option>
+									        <option value="vendido">Vendido</option>
+									        <option value="nunhum">Nenhum</option>
+										</select>
+									</li>	
+									<li class="ui-field-contain">
+										<font style="font-size: 10px;">Tipo de Autenticação:</font>
+									    <select id="tipo_auth_add" data-native-menu="true">
+									        <option value="pppoe">Pppoe</option>
+									        <option value="hotspot">Hotspot</option>
+									        <option value="binding">IpBinding</option>
+									        <option value="nunhum">Nenhum</option>
+										</select>
+									</li>	
+									<li class="ui-field-contain">
+										<font style="font-size: 10px;">Usuário de Acesso (secrets mk):</font>
+									    <div class="ui-grid-solo">
+										    <div class="ui-block-a">
+										    	<input id="name_secret_add" class="list_secrets" onkeyup="AutoCompleteText($(this));" type="text" data-id-click="id_secret_add" placeholder="Buscar Users..." data-no-match="Nada Encontrado" data-loading="Buscando ... aguarde." data-minlen="3" data-url="remote.php?cmd=busca&tipo=secret&query={val}&auth=pp">
+										    </div>
+										</div>
+									</li>	
+									<li class="ui-field-contain">
+										<font style="font-size: 10px;">Plano de Acesso:</font>
+									    <select id="plano_add" data-role="auto" data-url="remote.php?cmd=busca&tipo=select_produto&mensal=true&int=true">
+									    </select>
+									</li>	
+									<li class="ui-field-contain">
+										<font style="font-size: 10px;">Serviço Mensal Grátis:</font>
+									    <select id="gratis_add" data-role="slider" data-mini="true">
+										    <option value="">Off</option>
+										    <option value="on">On</option>
+										</select>
+									</li>	
+									<li class="ui-field-contain">
+										<font style="font-size: 10px;">Descontos e Acréscimos:</font>
+									    <fieldset data-role="controlgroup" data-type="horizontal" data-mini="false">
+										    <input id="desconto_add" placeholder="Desconto" type="text" class="money" data-wrapper-class="controlgroup-textinput ui-btn">
+										    <input id="acrescimo_add" placeholder="Acrescimo" type="text" class="money" data-wrapper-class="controlgroup-textinput ui-btn">
+									    </fieldset>
+									</li>	
+									<li class="ui-field-contain">
+										<input id="id_secret_add" type="hidden">
+										<input id="id_pontos_add" type="hidden">
+										<input id="new_item_add" type="hidden">
+										<input id="id_item_add" type="hidden">
+							            <button onclick="addIntemPontos();$('#cadastro_clientes_pontos').one('popupafterclose', function(){$('#cadastro_clientes').popup('open')}).popup('close');"  type="submit" class="ui-btn ui-btn-inline ui-shadow ui-btn-b ui-btn-icon-left ui-icon-plus">Adicionar</button>
+									</li>
+								</ul>
+							</div>
+					  	</div>
+						<div data-role="popup" id="PageListView">
+							<a href="#" data-rel="back" class="ui-btn ui-corner-all ui-shadow ui-btn-a ui-icon-delete ui-btn-icon-notext ui-btn-right">Close</a>
+							<div style="padding:10px 20px;"> 
+							    <center><h3><font color=blue size=5 id="titulo_PageListView"></font></h3></center>
+							    <ul id="list_PageListView" data-role="listview" ></ul><br>
+							    <center>
+									<a href="#" data-direction="reverse" data-rel="back" class="ui-btn ui-btn-inline ui-shadow ui-btn-b ui-btn-icon-left ui-icon-delete">FECHAR</a>
+								</center>
+							</div>
+					  	</div>
+					</div>		
+    </div>
+</body>
+</html>    

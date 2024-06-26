@@ -1,0 +1,45 @@
+CREATE VIEW `fcv_faturas` AS SELECT 
+`d`.`id_debitosfc` AS id_faturafc,
+`d`.`sit_debitosfc` AS sit_cliente_faturafc,
+`d`.`datatime_debitosfc` AS datatime_faturafc,
+`d`.`cliente_debitosfc` AS cliente_faturafc,
+`d`.`doc_debitosfc` AS doc_faturafc,
+`d`.`email_debitosfc` AS email_faturafc,
+`d`.`telefones_debitosfc` AS telefones_faturafc,
+`d`.`end_debitosfc` AS end_faturafc,
+`d`.`end_num_debitosfc` AS end_num_faturafc,
+`d`.`end_bar_debitosfc` AS end_bar_faturafc,
+`d`.`end_cep_debitosfc` AS end_cep_faturafc,
+`d`.`end_comp_debitosfc` AS end_comp_faturafc,
+`d`.`bol_debitosfc` AS bol_faturafc,
+`d`.`sendsms_debitosfc` AS sendsms_faturafc,
+`d`.`sendemail_debitosfc` AS sendemail_faturafc,
+`d`.`vc_cliente_debitosfc` AS vc_cliente_faturafc,
+`d`.`cidade_debitosfc` AS cidade_faturafc,
+`d`.`uf_debitosfc` AS uf_faturafc,
+DATE_FORMAT(DATE_SUB(CONCAT(`d`.`mes_debitosfc`,'-01'),INTERVAL 1 MONTH),"%Y-%m") AS mes_faturafc,
+-- IFNULL((select data_itensfc from fc_itens where id_cliente_itensfc=`d`.`id_debitosfc` and nome_itensfc='MENSALIDADE' and DATE_FORMAT(data_itensfc,"%Y-%m")=`d`.`mes_debitosfc` ORDER BY data_itensfc desc limit 1),ADD_DATA_UTIL(CONCAT(`d`.`mes_debitosfc`,'-',`d`.`vc_cliente_debitosfc`),`d`.`cidade_debitosfc`,`d`.`uf_debitosfc`)) AS vencimento_faturafc,
+ADD_DATA_UTIL(CONCAT(`d`.`mes_debitosfc`,'-',`d`.`vc_cliente_debitosfc`),`d`.`cidade_debitosfc`,`d`.`uf_debitosfc`) AS vencimento_faturafc,
+IFNULL(`d`.`total_debitosfc`,0) AS debitos_faturafc,
+IFNULL(`s`.`total_descontosfc`,0) + IFNULL(`p`.`desconto_pagamentosfc`,0) AS descontos_faturafc,
+ROUND(IFNULL(`d`.`total_debitosfc`,0) - IFNULL(`s`.`total_descontosfc`,0) - IFNULL(`p`.`desconto_pagamentosfc`,0), 2) AS valor_faturafc,
+`e`.`encargos_encargosfcv` AS encargos_faturafc,
+IFNULL(`e`.`valor_encargosfcv`,0) AS valor_encargos_faturafc,
+(IFNULL(`p`.`valor_pagamentosfc`,0)+IFNULL(`c`.`total_creditosfc`,0)) AS pagamentos_creditos_faturafc,
+CONCAT(IFNULL(`d`.`periodo_debitosfc`,''),';',IFNULL(`s`.`periodo_descontosfc`,'')) AS periodo_faturafc,
+CONCAT(IFNULL(`d`.`descricao_debitosfc`,''),';',IFNULL(`s`.`descricao_descontosfc`,'')) AS descricao_faturafc,
+IF(`p`.`valor_pagamentosfc` IS NOT NULL OR `c`.`total_creditosfc` IS NOT NULL,'on','') AS pago_faturafc,
+`p`.`ids_pagamentosfc` AS ids_pg_faturafc,
+`p`.`datas_pagamentosfc` AS datas_pg_faturafc,
+IF(IFNULL(`p`.`valor_pagamentosfc`,0)+IFNULL(`c`.`total_creditosfc`,0)>0,IF(IFNULL(`p`.`valor_pagamentosfc`,0)+IFNULL(`c`.`total_creditosfc`,0)>((IFNULL(`d`.`total_debitosfc`,0)+IFNULL(`e`.`valor_encargosfcv`,0)) - IFNULL(`s`.`total_descontosfc`,0) - IFNULL(`p`.`desconto_pagamentosfc`,0)),'MAIOR',IF((IFNULL(`p`.`valor_pagamentosfc`,0)+IFNULL(`c`.`total_creditosfc`,0))=((IFNULL(`d`.`total_debitosfc`,0)+IFNULL(`e`.`valor_encargosfcv`,0)) - IFNULL(`s`.`total_descontosfc`,0) - IFNULL(`p`.`desconto_pagamentosfc`,0)),'TOTAL','MENOR')),'') AS tipo_pg_faturafc,
+ROUND(IF(IFNULL(`p`.`valor_pagamentosfc`,0)+IFNULL(`c`.`total_creditosfc`,0)>((IFNULL(`d`.`total_debitosfc`,0)+IFNULL(`e`.`valor_encargosfcv`,0)) - IFNULL(`s`.`total_descontosfc`,0) - IFNULL(`p`.`desconto_pagamentosfc`,0)),(IFNULL(`p`.`valor_pagamentosfc`,0)+IFNULL(`c`.`total_creditosfc`,0) - ((IFNULL(`d`.`total_debitosfc`,0)+IFNULL(`e`.`valor_encargosfcv`,0)) - IFNULL(`s`.`total_descontosfc`,0) - IFNULL(`p`.`desconto_pagamentosfc`,0))),((IFNULL(`d`.`total_debitosfc`,0)+IFNULL(`e`.`valor_encargosfcv`,0)) - IFNULL(`s`.`total_descontosfc`,0) - IFNULL(`p`.`desconto_pagamentosfc`,0) - (IFNULL(`p`.`valor_pagamentosfc`,0)+IFNULL(`c`.`total_creditosfc`,0)))), 2) AS diferenca_faturafc,
+-- IF((select COUNT(*) from fc_itens where id_cliente_itensfc=`d`.`id_debitosfc` and nome_itensfc='MENSALIDADE' and DATE_FORMAT(data_itensfc,"%Y-%m")=`d`.`mes_debitosfc`)=0,'ABERTA','FECHADA') AS sit_faturafc,
+'FECHADA' AS sit_faturafc,
+`d`.`grupo_parceria`,
+`d`.`id_provedor` AS id_provedor
+FROM `fcv_debitos` AS `d`
+LEFT JOIN `fcv_encargos` AS `e` ON `e`.`id_encargosfcv`=`d`.`id_debitosfc` AND `e`.`mes_encargosfcv` like `d`.`mes_debitosfc`
+LEFT JOIN `fcv_descontos` AS `s` ON `s`.`id_descontosfc`=`d`.`id_debitosfc` AND `s`.`mes_descontosfc`=`d`.`mes_debitosfc`
+LEFT JOIN `fcv_creditos` AS `c` ON `c`.`id_creditosfc`=`d`.`id_debitosfc` AND `c`.`mes_creditosfc`=`d`.`mes_debitosfc`
+LEFT JOIN `fcv_pagamentos` AS `p` ON `p`.`id_pagamentosfc`=`d`.`id_debitosfc` AND `p`.`mes_pagamentosfc`=`d`.`mes_debitosfc`
+group by `d`.`mes_debitosfc`,`d`.id_debitosfc

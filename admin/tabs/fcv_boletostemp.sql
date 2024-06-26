@@ -1,0 +1,25 @@
+CREATE VIEW `fcv_boletostemp` AS SELECT 
+	MD5(CONCAT(`fa`.`id_faturafc`,`fa`.`valor_faturafc`,`fa`.`mes_faturafc`)) AS id_boltempfc,
+	`fa`.`datatime_faturafc` AS datatime_boltempfc,
+	`fa`.`descricao_faturafc` AS descricao_boltempfc,
+	`fa`.`id_faturafc` AS id_cliente_boltempfc,
+	`fa`.`vencimento_faturafc` AS data_cobranca_boltempfc,
+	`fa`.`mes_faturafc` AS mes_boltempfc,
+	`fa`.`diferenca_faturafc` AS valor_boltempfc,
+	IF(`fa`.`vencimento_faturafc` < CURDATE(),CURDATE(),DATE_FORMAT(`fa`.`vencimento_faturafc`,"%d/%m/%Y")) AS vencimento_boltempfc,
+	`fa`.`cliente_faturafc` AS nome_boltempfc,
+	`fa`.`doc_faturafc` AS doc_boltempfc,
+	`fa`.`email_faturafc` AS email_boltempfc,
+	`fa`.`telefones_faturafc` AS telefones_boltempfc,
+	`fa`.`end_faturafc` AS end_boltempfc,
+	`fa`.`end_num_faturafc` AS end_num_boltempfc,
+	`fa`.`end_cep_faturafc` AS end_cep_boltempfc,
+	`fa`.`cidade_faturafc` AS end_cidade_boltempfc,
+	`fa`.`uf_faturafc` AS end_uf_boltempfc,
+	`fa`.`end_comp_faturafc` AS end_comp_boltempfc,
+	`fa`.`bol_faturafc` AS on_boltempfc,
+	`fa`.`sendsms_faturafc` AS sendsms_boltempfc,
+	`fa`.`sendemail_faturafc` AS sendemail_boltempfc,
+	`fa`.`id_provedor` AS id_provedor
+  	FROM `fcv_faturas` AS `fa`
+  	WHERE (`fa`.`pago_faturafc`='on' AND `fa`.`tipo_pg_faturafc`='MENOR') OR `fa`.`pago_faturafc`!='on' AND `fa`.`diferenca_faturafc` > 0
